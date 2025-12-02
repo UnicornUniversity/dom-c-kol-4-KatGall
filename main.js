@@ -1,6 +1,21 @@
 //TODO add imports if needed
 //TODO doc
 
+// Konstanta pro přepočet věku na milisekundy
+const MS_IN_YEAR = 365.25 * 24 * 60 * 60 * 1000;
+
+// prettier-ignore
+const MALE_NAMES = ["Jan","Petr","Tomáš","Lukáš","Jakub","Adam","Matěj","Michal","Filip","David"];
+// prettier-ignore
+const FEMALE_NAMES = ["Anna","Eliška","Adéla","Tereza","Karolína","Lucie","Kristýna","Marie","Veronika","Kateřina"];
+// prettier-ignore
+const MALE_SURNAMES = ["Vomáčka","Svoboda","Dvořák","Černý","Procházka","Kučera","Horák","Beneš","Fiala","Sedláček"];
+// prettier-ignore
+const FEMALE_SURNAMES = ["Nováková","Svobodová","Dvořáková","Černá","Procházková","Kučerová","Horáková","Benešová","Fialová","Sedláčková"];
+
+const WORKLOADS = [10, 20, 30, 40];
+const GENDERS = ["male", "female"];
+
 /**
  * The main function which calls the application.
  * 1) Generates random employees based on dtoIn.
@@ -15,11 +30,11 @@ export function main(dtoIn) {
 }
 
 /**
- * Generates a list of random employees based on count and age interval.
- * @param {object} dtoIn contains count of employees, age limit of employees {min, max}
- * @returns {Array} of employees with structure { gender, birthdate, name, surname, workload }
+ * Validates input dtoIn and extracts basic values.
+ * @param {object} dtoIn contains count and age object {min, max}
+ * @returns {{count:number, minAge:number, maxAge:number}}
  */
-export function generateEmployeeData(dtoIn) {
+function parseDtoIn(dtoIn) {
   if (!dtoIn || typeof dtoIn !== "object") {
     throw new Error("Vstup dtoIn musí být objekt.");
   }
@@ -42,51 +57,69 @@ export function generateEmployeeData(dtoIn) {
     throw new Error("Zadaný věkový interval není platný.");
   }
 
+  return { count, minAge, maxAge };
+}
+
+/**
+ * Returns random element from given array.
+ * @param {Array} array input array
+ * @returns {*} random element
+ */
+function getRandomFromArray(array) {
+  const index = Math.floor(Math.random() * array.length);
+  return array[index];
+}
+
+/**
+ * Generates single random employee.
+ * @param {number} minAge minimal age
+ * @param {number} maxAge maximal age
+ * @param {Date} today reference date for age calculation
+ * @returns {object} employee object
+ */
+function generateSingleEmployee(minAge, maxAge, today) {
+  const gender = getRandomFromArray(GENDERS);
+
+  const name =
+    gender === "male"
+      ? getRandomFromArray(MALE_NAMES)
+      : getRandomFromArray(FEMALE_NAMES);
+
+  const surname =
+    gender === "male"
+      ? getRandomFromArray(MALE_SURNAMES)
+      : getRandomFromArray(FEMALE_SURNAMES);
+
+  const workload = getRandomFromArray(WORKLOADS);
+
+  // věk jako desetinné číslo v intervalu <minAge, maxAge>
+  const ageVal = Math.random() * (maxAge - minAge) + minAge;
+  const birthTimestamp = today.getTime() - ageVal * MS_IN_YEAR;
+  const birthdate = new Date(birthTimestamp).toISOString();
+
+  return {
+    gender,
+    birthdate,
+    name,
+    surname,
+    workload,
+  };
+}
+
+/**
+ * Generates a list of random employees based on count and age interval.
+ * (Navazuje na řešení z Homework 3.)
+ * @param {object} dtoIn contains count of employees, age limit of employees {min, max}
+ * @returns {Array} of employees with structure { gender, birthdate, name, surname, workload }
+ */
+export function generateEmployeeData(dtoIn) {
+  const { count, minAge, maxAge } = parseDtoIn(dtoIn);
+
   const employees = [];
   const today = new Date();
 
-  // prettier-ignore
-  const maleNames = ["Jan","Petr","Tomáš","Lukáš","Jakub","Adam","Matěj","Michal","Filip","David"];
-  // prettier-ignore
-  const femaleNames = ["Anna","Eliška","Adéla","Tereza","Karolína","Lucie","Kristýna","Marie","Veronika","Kateřina"];
-  // prettier-ignore
-  const maleSurnames = ["Vomáčka","Svoboda","Dvořák","Černý","Procházka","Kučera","Horák","Beneš","Fiala","Sedláček"];
-  // prettier-ignore
-  const femaleSurnames = ["Nováková","Svobodová","Dvořáková","Černá","Procházková","Kučerová","Horáková","Benešová","Fialová","Sedláčková"];
-
-  const workloads = [10, 20, 30, 40];
-  const genders = ["male", "female"];
-  const MS_IN_YEAR = 365.25 * 24 * 60 * 60 * 1000;
-
   for (let i = 0; i < count; i++) {
-    const gender = genders[Math.floor(Math.random() * genders.length)];
-
-    const name =
-      gender === "male"
-        ? maleNames[Math.floor(Math.random() * maleNames.length)]
-        : femaleNames[Math.floor(Math.random() * femaleNames.length)];
-
-    const surname =
-      gender === "male"
-        ? maleSurnames[Math.floor(Math.random() * maleSurnames.length)]
-        : femaleSurnames[Math.floor(Math.random() * femaleSurnames.length)];
-
-    const workload = workloads[Math.floor(Math.random() * workloads.length)];
-
-    // věk jako desetinné číslo v intervalu <minAge, maxAge>
-    const ageVal = Math.random() * (maxAge - minAge) + minAge;
-
-    const birthTimestamp = today.getTime() - ageVal * MS_IN_YEAR;
-    const birthdate = new Date(birthTimestamp).toISOString();
-
-    const employee = {
-      gender,
-      birthdate,
-      name,
-      surname,
-      workload,
-    };
-
+    const employee = generateSingleEmployee(minAge, maxAge, today);
     employees.push(employee);
   }
 
@@ -94,14 +127,23 @@ export function generateEmployeeData(dtoIn) {
 }
 
 /**
- * Computes statistics from the list of employees.
- * @param {Array} employees containing all the mocked employee data
- * @returns {object} statistics of the employees
+ * Returns age in years (as decimal number) based on birthdate.
+ * @param {string} birthdate date in ISO format
+ * @param {Date} today reference date
+ * @returns {number} age in years as decimal
  */
-export function getEmployeeStatistics(employees) {
-  const total = employees.length;
+function getAgeFromBirthdate(birthdate, today) {
+  const birth = new Date(birthdate);
+  const ageMs = today.getTime() - birth.getTime();
+  return ageMs / MS_IN_YEAR;
+}
 
-  // counts by workload
+/**
+ * Aggregates base statistics from employees (ages, workloads, counters).
+ * @param {Array} employees list of employees
+ * @returns {object} aggregated data
+ */
+function aggregateEmployeeData(employees) {
   let workload10 = 0;
   let workload20 = 0;
   let workload30 = 0;
@@ -109,13 +151,11 @@ export function getEmployeeStatistics(employees) {
 
   const workloads = [];
   const womenWorkloads = [];
-
   const ages = [];
+
   const today = new Date();
-  const MS_IN_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
   for (const emp of employees) {
-    // workload counts
     if (emp.workload === 10) workload10++;
     if (emp.workload === 20) workload20++;
     if (emp.workload === 30) workload30++;
@@ -127,30 +167,63 @@ export function getEmployeeStatistics(employees) {
       womenWorkloads.push(emp.workload);
     }
 
-    // age as decimal number from birthdate
-    const birth = new Date(emp.birthdate);
-    const ageMs = today.getTime() - birth.getTime();
-    const age = ageMs / MS_IN_YEAR;
+    const age = getAgeFromBirthdate(emp.birthdate, today);
     ages.push(age);
   }
 
-  // helper functions
-  function getMedian(numbers) {
-    if (numbers.length === 0) return 0;
-    const arr = [...numbers].sort((a, b) => a - b);
-    const mid = Math.floor(arr.length / 2);
-    if (arr.length % 2 === 1) {
-      return arr[mid];
-    } else {
-      return (arr[mid - 1] + arr[mid]) / 2;
-    }
-  }
+  return {
+    workload10,
+    workload20,
+    workload30,
+    workload40,
+    workloads,
+    womenWorkloads,
+    ages,
+  };
+}
 
-  function roundToOneDecimal(value) {
-    return Number(value.toFixed(1));
+/**
+ * Calculates median from array of numbers.
+ * @param {number[]} numbers array of numbers
+ * @returns {number} median value or 0 for empty array
+ */
+function getMedian(numbers) {
+  if (numbers.length === 0) return 0;
+  const arr = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(arr.length / 2);
+  if (arr.length % 2 === 1) {
+    return arr[mid];
   }
+  return (arr[mid - 1] + arr[mid]) / 2;
+}
 
-  // age statistics
+/**
+ * Rounds number to one decimal place.
+ * @param {number} value input value
+ * @returns {number} rounded value
+ */
+function roundToOneDecimal(value) {
+  return Number(value.toFixed(1));
+}
+
+/**
+ * Computes statistics from the list of employees.
+ * @param {Array} employees containing all the mocked employee data
+ * @returns {object} statistics of the employees
+ */
+export function getEmployeeStatistics(employees) {
+  const total = employees.length;
+
+  const {
+    workload10,
+    workload20,
+    workload30,
+    workload40,
+    workloads,
+    womenWorkloads,
+    ages,
+  } = aggregateEmployeeData(employees);
+
   let averageAge = 0;
   let minAge = 0;
   let maxAge = 0;
@@ -159,31 +232,27 @@ export function getEmployeeStatistics(employees) {
   if (ages.length > 0) {
     const sumAges = ages.reduce((sum, x) => sum + x, 0);
     const avg = sumAges / ages.length;
-    averageAge = roundToOneDecimal(avg); // 1 decimal place
+    averageAge = roundToOneDecimal(avg);
 
     const minRaw = Math.min(...ages);
     const maxRaw = Math.max(...ages);
     const medianRaw = getMedian(ages);
 
-    minAge = Math.round(minRaw); // integers
+    minAge = Math.round(minRaw);
     maxAge = Math.round(maxRaw);
     medianAge = Math.round(medianRaw);
   }
 
-  // median workload (rounded to integer as required)
   const medianWorkloadRaw = getMedian(workloads);
   const medianWorkload = Math.round(medianWorkloadRaw);
 
-  // average women workload
   let averageWomenWorkload = 0;
   if (womenWorkloads.length > 0) {
     const sumWomen = womenWorkloads.reduce((sum, x) => sum + x, 0);
     const avgWomen = sumWomen / womenWorkloads.length;
-    // allowed whole number or 1 decimal – we use 1 decimal
     averageWomenWorkload = roundToOneDecimal(avgWomen);
   }
 
-  // sorted employees by workload ascending
   const sortedByWorkload = [...employees].sort(
     (a, b) => a.workload - b.workload
   );

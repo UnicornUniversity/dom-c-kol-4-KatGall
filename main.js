@@ -1,9 +1,26 @@
 //TODO add imports if needed
 //TODO doc
 
-// Konstanta pro přepočet věku na milisekundy – 365 dní (podle pokynů z hodiny)
+/**
+ * Hlavní funkce aplikace.
+ * 1) Vygeneruje náhodné zaměstnance podle dtoIn.
+ * 2) Spočítá statistiky nad seznamem zaměstnanců.
+ *
+ * @param {object} dtoIn obsahuje:
+ *  - count: počet zaměstnanců
+ *  - age: objekt s hranicemi věku { min, max }
+ * @returns {object} dtoOut obsahující požadované statistiky
+ */
+export function main(dtoIn) {
+  const employees = generateEmployeeData(dtoIn);
+  const dtoOut = getEmployeeStatistics(employees);
+  return dtoOut;
+}
+
+// Konstanta pro přepočet věku na milisekundy – 365 dní v roce
 const MS_IN_YEAR = 365 * 24 * 60 * 60 * 1000;
 
+// Seznamy jmen a příjmení (stejné jako v úkolu 3)
 // prettier-ignore
 const MALE_NAMES = ["Jan","Petr","Tomáš","Lukáš","Jakub","Adam","Matěj","Michal","Filip","David"];
 // prettier-ignore
@@ -17,22 +34,10 @@ const WORKLOADS = [10, 20, 30, 40];
 const GENDERS = ["male", "female"];
 
 /**
- * The main function which calls the application.
- * 1) Generates random employees based on dtoIn.
- * 2) Computes statistics over the generated employees.
- * @param {object} dtoIn contains count of employees, age limit of employees {min, max}
- * @returns {object} dtoOut containing the statistics
- */
-export function main(dtoIn) {
-  const employees = generateEmployeeData(dtoIn);
-  const dtoOut = getEmployeeStatistics(employees);
-  return dtoOut;
-}
-
-/**
- * Validates input dtoIn and extracts basic values.
- * @param {object} dtoIn contains count and age object {min, max}
- * @returns {{count:number, minAge:number, maxAge:number}} parsed values from dtoIn
+ * Pomocná funkce: validuje dtoIn a vrátí základní hodnoty.
+ *
+ * @param {object} dtoIn vstup podle zadání
+ * @returns {{count:number, minAge:number, maxAge:number}}
  */
 function parseDtoIn(dtoIn) {
   if (!dtoIn || typeof dtoIn !== "object") {
@@ -61,9 +66,10 @@ function parseDtoIn(dtoIn) {
 }
 
 /**
- * Returns random element from given array.
- * @param {Array} array input array
- * @returns {*} random element from array
+ * Vrátí náhodný prvek z daného pole.
+ *
+ * @param {Array} array vstupní pole
+ * @returns {*} náhodný prvek
  */
 function getRandomFromArray(array) {
   const index = Math.floor(Math.random() * array.length);
@@ -71,11 +77,12 @@ function getRandomFromArray(array) {
 }
 
 /**
- * Generates single random employee.
- * @param {number} minAge minimal age
- * @param {number} maxAge maximal age
- * @param {Date} today reference date for age calculation
- * @returns {object} employee object
+ * Vygeneruje jednoho náhodného zaměstnance.
+ *
+ * @param {number} minAge minimální věk
+ * @param {number} maxAge maximální věk
+ * @param {Date} today referenční datum (dnešek)
+ * @returns {{gender:string, birthdate:string, name:string, surname:string, workload:number}}
  */
 function generateSingleEmployee(minAge, maxAge, today) {
   const gender = getRandomFromArray(GENDERS);
@@ -92,8 +99,10 @@ function generateSingleEmployee(minAge, maxAge, today) {
 
   const workload = getRandomFromArray(WORKLOADS);
 
-  // věk jako desetinné číslo v intervalu <minAge, maxAge>
+  // věk jako reálné číslo v intervalu <minAge, maxAge>
   const ageVal = Math.random() * (maxAge - minAge) + minAge;
+
+  // výpočet data narození z věku
   const birthTimestamp = today.getTime() - ageVal * MS_IN_YEAR;
   const birthdate = new Date(birthTimestamp).toISOString();
 
@@ -107,10 +116,11 @@ function generateSingleEmployee(minAge, maxAge, today) {
 }
 
 /**
- * Generates a list of random employees based on count and age interval.
- * (Navazuje na řešení z Homework 3 – generování seznamu zaměstnanců.)
- * @param {object} dtoIn contains count of employees, age limit of employees {min, max}
- * @returns {Array} dtoOut list of employees with structure { gender, birthdate, name, surname, workload }
+ * Generuje seznam náhodných zaměstnanců podle počtu a věkového intervalu.
+ * (Navazuje na úkol 3 – generování zaměstnanců.)
+ *
+ * @param {object} dtoIn obsahuje count (počet zaměstnanců) a age objekt {min, max}
+ * @returns {Array} pole zaměstnanců se strukturou { gender, birthdate, name, surname, workload }
  */
 export function generateEmployeeData(dtoIn) {
   const { count, minAge, maxAge } = parseDtoIn(dtoIn);
@@ -127,10 +137,11 @@ export function generateEmployeeData(dtoIn) {
 }
 
 /**
- * Returns age in years (as decimal number) based on birthdate.
- * @param {string} birthdate date in ISO format
- * @param {Date} today reference date
- * @returns {number} age in years as decimal number
+ * Spočítá věk v letech (jako reálné číslo) z data narození.
+ *
+ * @param {string} birthdate datum narození v ISO formátu
+ * @param {Date} today referenční datum (dnešek)
+ * @returns {number} věk v letech jako reálné číslo
  */
 function getAgeFromBirthdate(birthdate, today) {
   const birth = new Date(birthdate);
@@ -139,18 +150,21 @@ function getAgeFromBirthdate(birthdate, today) {
 }
 
 /**
- * Rounds number to one decimal place.
- * @param {number} value input value
- * @returns {number} value rounded to one decimal place
+ * Zaokrouhlí číslo na jedno desetinné místo.
+ *
+ * @param {number} value vstupní hodnota
+ * @returns {number} zaokrouhlená hodnota
  */
 function roundToOneDecimal(value) {
   return Number(value.toFixed(1));
 }
 
 /**
- * Aggregates base statistics from employees (ages, workloads, counters).
- * @param {Array} employees list of employees
- * @returns {object} aggregated data for further statistics
+ * Pomocná funkce, která projde všechny zaměstnance a nasbírá
+ * data pro další výpočty (věky, úvazky, počty…).
+ *
+ * @param {Array} employees pole zaměstnanců
+ * @returns {object} agregovaná data
  */
 function aggregateEmployeeData(employees) {
   let workload10 = 0;
@@ -165,6 +179,7 @@ function aggregateEmployeeData(employees) {
   const today = new Date();
 
   for (const emp of employees) {
+    // počty podle úvazku
     if (emp.workload === 10) workload10++;
     if (emp.workload === 20) workload20++;
     if (emp.workload === 30) workload30++;
@@ -176,10 +191,9 @@ function aggregateEmployeeData(employees) {
       womenWorkloads.push(emp.workload);
     }
 
-    // věk jako reálné číslo zaokrouhlené na 1 desetinu
+    // věk jako reálné číslo (bez předchozího zaokrouhlení)
     const ageExact = getAgeFromBirthdate(emp.birthdate, today);
-    const age = roundToOneDecimal(ageExact);
-    ages.push(age);
+    ages.push(ageExact);
   }
 
   return {
@@ -194,24 +208,28 @@ function aggregateEmployeeData(employees) {
 }
 
 /**
- * Calculates median from array of numbers.
- * @param {number[]} numbers array of numbers
- * @returns {number} median value or 0 for empty array
+ * Výpočet mediánu z pole čísel.
+ *
+ * @param {number[]} numbers pole čísel
+ * @returns {number} medián nebo 0 pro prázdné pole
  */
 function getMedian(numbers) {
   if (numbers.length === 0) return 0;
   const arr = [...numbers].sort((a, b) => a - b);
   const mid = Math.floor(arr.length / 2);
+
   if (arr.length % 2 === 1) {
     return arr[mid];
   }
+
   return (arr[mid - 1] + arr[mid]) / 2;
 }
 
 /**
- * Computes statistics from the list of employees.
- * @param {Array} employees containing all the mocked employee data
- * @returns {object} dtoOut statistics of the employees
+ * Spočítá statistiky ze seznamu zaměstnanců.
+ *
+ * @param {Array} employees pole zaměstnanců
+ * @returns {object} dtoOut se statistikami dle zadání
  */
 export function getEmployeeStatistics(employees) {
   const total = employees.length;
@@ -226,6 +244,7 @@ export function getEmployeeStatistics(employees) {
     ages,
   } = aggregateEmployeeData(employees);
 
+  // ---- věkové statistiky ----
   let averageAge = 0;
   let minAge = 0;
   let maxAge = 0;
@@ -234,32 +253,34 @@ export function getEmployeeStatistics(employees) {
   if (ages.length > 0) {
     const sumAges = ages.reduce((sum, x) => sum + x, 0);
     const avg = sumAges / ages.length;
-    // průměrný věk – 1 desetinné místo
+
+    // průměrný věk – zaokrouhlený na 1 desetinu
     averageAge = roundToOneDecimal(avg);
 
     const minRaw = Math.min(...ages);
     const maxRaw = Math.max(...ages);
     const medianRaw = getMedian(ages);
 
-    // min/max/median věku – celá čísla směrem dolů
+    // min, max, medián věku – celé roky směrem dolů
     minAge = Math.floor(minRaw);
     maxAge = Math.floor(maxRaw);
     medianAge = Math.floor(medianRaw);
   }
 
-  // medián úvazku – celé číslo
+  // ---- medián úvazku (čisté číslo) ----
   const medianWorkloadRaw = getMedian(workloads);
   const medianWorkload = Math.round(medianWorkloadRaw);
 
-  // průměrný úvazek žen – 1 desetinné místo
+  // ---- průměrná výše úvazku v rámci žen ----
   let averageWomenWorkload = 0;
   if (womenWorkloads.length > 0) {
     const sumWomen = womenWorkloads.reduce((sum, x) => sum + x, 0);
     const avgWomen = sumWomen / womenWorkloads.length;
+    // může být celé číslo nebo 1 desetina – volíme 1 desetinu
     averageWomenWorkload = roundToOneDecimal(avgWomen);
   }
 
-  // seřazení podle úvazku vzestupně
+  // ---- seřazení zaměstnanců dle workload od nejmenšího po největší ----
   const sortedByWorkload = [...employees].sort(
     (a, b) => a.workload - b.workload
   );
